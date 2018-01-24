@@ -12,7 +12,7 @@ Description: >
 Parameters:
   LaunchType:
     Type: String
-    Default: Fargate
+    Default: EC2
     AllowedValues:
       - Fargate
       - EC2
@@ -44,10 +44,15 @@ Parameters:
 
   TemplateBucket:
     Type: String
-    Default: ecs-refarch-continuous-deployment
+    Default: ecs-continuous-deployment
     Description: >
       The S3 bucket from which to fetch the templates used by this stack.
 
+  KeyName:
+    Type: String
+
+  LBCertificateArn:
+    Type: String
 
 Metadata:
   AWS::CloudFormation::Interface:
@@ -62,11 +67,14 @@ Metadata:
         default: "Personal Access Token"
       LaunchType:
         default: "Launch Type"
+      LBCertificateArn:
+        default: "Load Balancer SSL Certificate Arn"
     ParameterGroups:
       - Label:
           default: Cluster Configuration
         Parameters:
           - LaunchType
+          - KeyName
       - Label:
           default: GitHub Configuration
         Parameters:
@@ -79,7 +87,6 @@ Metadata:
         Parameters:
           - TemplateBucket
 
-
 Resources:
   Cluster:
     Type: AWS::CloudFormation::Stack
@@ -90,6 +97,7 @@ Resources:
         SourceSecurityGroup: !GetAtt LoadBalancer.Outputs.SecurityGroup
         Subnets: !GetAtt VPC.Outputs.Subnets
         VpcId: !GetAtt VPC.Outputs.VpcId
+        KeyName: !Ref KeyName
 
   DeploymentPipeline:
     Type: AWS::CloudFormation::Stack
@@ -111,6 +119,7 @@ Resources:
         LaunchType: !Ref LaunchType
         Subnets: !GetAtt VPC.Outputs.Subnets
         VpcId: !GetAtt VPC.Outputs.VpcId
+        LBCertificateArn: !Ref LBCertificateArn
 
   VPC:
     Type: AWS::CloudFormation::Stack
@@ -138,7 +147,3 @@ Outputs:
   ServiceUrl:
     Description: The sample service that is being continuously deployed.
     Value: !GetAtt LoadBalancer.Outputs.ServiceUrl
-
-  PipelineUrl:
-    Description: The continuous deployment pipeline in the AWS Management Console.
-    Value: !GetAtt DeploymentPipeline.Outputs.PipelineUrl

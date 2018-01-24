@@ -89,7 +89,9 @@ Resources:
 
 
 Outputs:
+
   Subnets:
     Value: !Join [ ",", [ !Ref Subnet1, !Ref Subnet2 ] ]
+
   VpcId:
     Value: !Ref VPC

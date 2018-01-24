@@ -5,7 +5,7 @@ AWSTemplateFormatVersion: 2010-09-09
 Parameters:
   LaunchType:
     Type: String
-    Default: Fargate
+    Default: EC2
     AllowedValues:
       - Fargate
       - EC2
@@ -27,10 +27,12 @@ Parameters:
   VpcId:
     Type: AWS::EC2::VPC::Id
 
+  KeyName:
+    Description: EC2 key pair name
+    Type: String
 
 Conditions:
   EC2: !Equals [ !Ref LaunchType, "EC2" ]
-
 
 Mappings:
   AWSRegionToAMI:
@@ -65,8 +67,8 @@ Mappings:
     us-west-2:
       AMI: ami-decc7fa6
 
-
 Resources:
+
   ECSRole:
     Type: AWS::IAM::Role
     Condition: EC2
@@ -165,13 +167,13 @@ Resources:
       IamInstanceProfile: !Ref InstanceProfile
       SecurityGroups:
         - !Ref SecurityGroup
+      KeyName: !Ref KeyName
       UserData:
         "Fn::Base64": !Sub |
           #!/bin/bash
           yum install -y aws-cfn-bootstrap
           /opt/aws/bin/cfn-init -v --region ${AWS::Region} --stack ${AWS::StackName} --resource LaunchConfiguration
           /opt/aws/bin/cfn-signal -e $? --region ${AWS::Region} --stack ${AWS::StackName} --resource AutoScalingGroup
-
 
 Outputs:
   ClusterName:

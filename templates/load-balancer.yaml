@@ -5,7 +5,7 @@ AWSTemplateFormatVersion: 2010-09-09
 Parameters:
   LaunchType:
     Type: String
-    Default: Fargate
+    Default: EC2
     AllowedValues:
       - Fargate
       - EC2
@@ -16,12 +16,14 @@ Parameters:
   VpcId:
     Type: String
 
+  LBCertificateArn:
+    Type: String
 
 Conditions:
   EC2: !Equals [ !Ref LaunchType, "EC2" ]
 
-
 Resources:
+
   SecurityGroup:
     Type: "AWS::EC2::SecurityGroup"
     Properties:
@@ -31,6 +33,10 @@ Resources:
           IpProtocol: "TCP"
           FromPort: 80
           ToPort: 80
+        - CidrIp: "0.0.0.0/0"
+          IpProtocol: "TCP"
+          FromPort: 443
+          ToPort: 443
       VpcId: !Ref VpcId
 
   LoadBalancer:
@@ -40,12 +46,24 @@ Resources:
       SecurityGroups:
         - !Ref SecurityGroup
 
-  LoadBalancerListener:
+  LoadBalancerListenerHTTP:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
       LoadBalancerArn: !Ref LoadBalancer
       Port: 80
       Protocol: HTTP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroup
+
+  LoadBalancerListenerHTTPS:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref LoadBalancer
+      Port: 443
+      Protocol: HTTPS
+      Certificates:
+          - CertificateArn: !Ref LBCertificateArn
       DefaultActions:
         - Type: forward
           TargetGroupArn: !Ref TargetGroup
@@ -58,7 +76,7 @@ Resources:
       Port: 80
       Protocol: HTTP
       Matcher:
-        HttpCode: 200-299
+        HttpCode: 200-301
       HealthCheckIntervalSeconds: 10
       HealthCheckPath: /
       HealthCheckProtocol: HTTP
@@ -69,10 +87,10 @@ Resources:
         - Key: deregistration_delay.timeout_seconds
           Value: 30
 
-  ListenerRule:
+  ListenerRuleHTTP:
     Type: AWS::ElasticLoadBalancingV2::ListenerRule
     Properties:
-      ListenerArn: !Ref LoadBalancerListener
+      ListenerArn: !Ref LoadBalancerListenerHTTP
       Priority: 1
       Conditions:
         - Field: path-pattern
@@ -82,6 +100,18 @@ Resources:
         - TargetGroupArn: !Ref TargetGroup
           Type: forward
 
+  ListenerRuleHTTPS:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      ListenerArn: !Ref LoadBalancerListenerHTTPS
+      Priority: 1
+      Conditions:
+        - Field: path-pattern
+          Values:
+            - /
+      Actions:
+        - TargetGroupArn: !Ref TargetGroup
+          Type: forward
 
 Outputs:
   TargetGroup:

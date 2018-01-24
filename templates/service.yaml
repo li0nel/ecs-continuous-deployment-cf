@@ -12,7 +12,7 @@ Parameters:
 
   LaunchType:
     Type: String
-    Default: Fargate
+    Default: EC2
     AllowedValues:
       - Fargate
       - EC2
@@ -26,14 +26,13 @@ Parameters:
   Subnets:
     Type: List<AWS::EC2::Subnet::Id>
 
-
 Conditions:
   Fargate: !Equals [ !Ref LaunchType, "Fargate" ]
 
   EC2: !Equals [ !Ref LaunchType, "EC2" ]
 
-
 Resources:
+
   TaskExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -85,6 +84,18 @@ Resources:
           ContainerPort: 80
           TargetGroupArn: !Ref TargetGroup
 
+  ServiceRedirect:
+    Type: AWS::ECS::Service
+    Properties:
+      Cluster: !Ref Cluster
+      DesiredCount: 1
+      TaskDefinition: !Ref TaskDefinitionRedirectHTTPtoHTTPS
+      LaunchType: EC2
+      LoadBalancers:
+        - ContainerName: nginx-to-https
+          ContainerPort: 80
+          TargetGroupArn: !Ref TargetGroup
+
   TaskDefinition:
     Type: AWS::ECS::TaskDefinition
     Properties:
@@ -129,6 +140,17 @@ Resources:
       Volumes:
         - Name: my-vol
 
+  TaskDefinitionRedirectHTTPtoHTTPS:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: nginx-to-https
+      ContainerDefinitions:
+        - Name: nginx-to-https
+          Essential: true
+          Image: getlionel/nginx-to-https
+          Memory: 64
+          PortMappings:
+            - ContainerPort: 80
 
 Outputs:
   Service:
