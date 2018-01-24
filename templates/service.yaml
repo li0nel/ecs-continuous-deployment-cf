@@ -20,6 +20,9 @@ Parameters:
   TargetGroup:
     Type: String
 
+  TargetGroupRedirect:
+    Type: String
+
   SourceSecurityGroup:
     Type: AWS::EC2::SecurityGroup::Id
 
@@ -94,7 +97,7 @@ Resources:
       LoadBalancers:
         - ContainerName: nginx-to-https
           ContainerPort: 80
-          TargetGroupArn: !Ref TargetGroup
+          TargetGroupArn: !Ref TargetGroupRedirect
 
   TaskDefinition:
     Type: AWS::ECS::TaskDefinition

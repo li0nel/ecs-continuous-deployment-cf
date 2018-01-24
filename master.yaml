@@ -139,6 +139,7 @@ Resources:
         Cluster: !GetAtt Cluster.Outputs.ClusterName
         LaunchType: !Ref LaunchType
         TargetGroup: !GetAtt LoadBalancer.Outputs.TargetGroup
+        TargetGroupRedirect: !GetAtt LoadBalancer.Outputs.TargetGroupRedirect
         SourceSecurityGroup: !GetAtt LoadBalancer.Outputs.SecurityGroup
         Subnets: !GetAtt VPC.Outputs.Subnets
 
