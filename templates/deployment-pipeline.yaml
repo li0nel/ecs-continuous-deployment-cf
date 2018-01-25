@@ -3,18 +3,9 @@ AWSTemplateFormatVersion: 2010-09-09
 
 
 Parameters:
-  GitHubRepo:
+  RepositoryBranch:
     Type: String
-
-  GitHubBranch:
-    Type: String
-
-  GitHubToken:
-    Type: String
-    NoEcho: true
-
-  GitHubUser:
-    Type: String
+    Default: master
 
   Cluster:
     Type: String
@@ -27,6 +18,11 @@ Resources:
   Repository:
     Type: AWS::ECR::Repository
     DeletionPolicy: Retain
+
+  CodeRepository:
+    Type: AWS::CodeCommit::Repository
+    Properties:
+      RepositoryName: !Ref AWS::StackName
 
   CodeBuildServiceRole:
     Type: AWS::IAM::Role
@@ -104,6 +100,14 @@ Resources:
                   - codebuild:StartBuild
                   - codebuild:BatchGetBuilds
                   - iam:PassRole
+              - Resource: !GetAtt CodeRepository.Arn
+                Effect: Allow
+                Action:
+                  - codecommit:GetBranch
+                  - codecommit:GetCommit
+                  - codecommit:UploadArchive
+                  - codecommit:GetUploadArchiveStatus
+                  - codecommit:CancelUploadArchive
 
   ArtifactBucket:
     Type: AWS::S3::Bucket
@@ -158,14 +162,12 @@ Resources:
             - Name: App
               ActionTypeId:
                 Category: Source
-                Owner: ThirdParty
+                Owner: AWS
                 Version: 1
-                Provider: GitHub
+                Provider: CodeCommit
               Configuration:
-                Owner: !Ref GitHubUser
-                Repo: !Ref GitHubRepo
-                Branch: !Ref GitHubBranch
-                OAuthToken: !Ref GitHubToken
+                RepositoryName: !GetAtt CodeRepository.Name
+                BranchName: !Ref RepositoryBranch
               OutputArtifacts:
                 - Name: App
               RunOrder: 1
@@ -204,3 +206,6 @@ Resources:
 Outputs:
   PipelineUrl:
     Value: !Sub https://console.aws.amazon.com/codepipeline/home?region=${AWS::Region}#/view/${Pipeline}
+
+  CloneUrlHttp:
+    Value: !GetAtt CodeRepository.CloneUrlHttp

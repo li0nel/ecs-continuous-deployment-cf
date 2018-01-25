@@ -105,7 +105,7 @@ Resources:
       Family: !Sub ${AWS::StackName}-simple-app
       RequiresCompatibilities:
         - !If [ Fargate, "FARGATE", "EC2" ]
-      Memory: 512
+      Memory: 384
       Cpu: 256
       NetworkMode: !If [ Fargate, "awsvpc", "bridge" ]
       ExecutionRoleArn: !Ref TaskExecutionRole
